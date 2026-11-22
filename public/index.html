@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Список дел</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23234e70'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <p class="app-header__title">Список дел</p>
+      <div id="author-box" class="author" hidden>
+        <p class="author__text">
+          <span class="visually-hidden">Автор:</span>
+          <span id="author-name" class="author__name"></span>
+          <span id="author-login" class="author__login"></span>
+        </p>
+        <button id="logout-button" type="button" class="button button--ghost">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="page" tabindex="-1">
+    <h1 class="visually-hidden">Список дел</h1>
+
+    <div id="alert" class="alert" role="alert" hidden></div>
+
+    <section id="login-section" class="card" aria-labelledby="login-title">
+      <h2 id="login-title" class="card__title">Вход</h2>
+      <form id="login-form" class="stack" novalidate>
+        <div class="field">
+          <label for="token-input" class="field__label">Токен доступа</label>
+          <p id="token-hint" class="field__hint">Токен хранится только в этой вкладке браузера и пропадает после ее закрытия.</p>
+          <input id="token-input" class="input" type="password" autocomplete="off"
+                 spellcheck="false" required aria-describedby="token-hint token-error">
+          <p id="token-error" class="field__error" hidden></p>
+        </div>
+        <button type="submit" class="button">Войти</button>
+      </form>
+    </section>
+
+    <section id="tasks-section" class="card" aria-labelledby="tasks-title" hidden>
+      <h2 id="tasks-title" class="card__title" tabindex="-1">Дела</h2>
+
+      <form id="run-form" class="inline-form" novalidate>
+        <div class="field field--grow">
+          <label for="run-input" class="field__label">Набор дел (runId)</label>
+          <p id="run-hint" class="field__hint">Латиница, цифры, «_» и «-», до 64 символов.</p>
+          <input id="run-input" class="input" type="text" value="manual" maxlength="64"
+                 autocomplete="off" spellcheck="false" required aria-describedby="run-hint run-error">
+          <p id="run-error" class="field__error" hidden></p>
+        </div>
+        <button type="submit" class="button button--secondary">Показать</button>
+      </form>
+
+      <form id="add-form" class="inline-form" novalidate>
+        <div class="field field--grow">
+          <label for="add-input" class="field__label">Новое дело</label>
+          <input id="add-input" class="input" type="text" autocomplete="off"
+                 required aria-describedby="add-error">
+          <p id="add-error" class="field__error" hidden></p>
+        </div>
+        <button type="submit" class="button">Добавить</button>
+      </form>
+
+      <p id="summary" class="summary"></p>
+      <ul id="task-list" class="task-list" aria-labelledby="tasks-title"></ul>
+      <p id="empty-note" class="empty" hidden>В этом наборе пока нет дел.</p>
+    </section>
+
+    <div id="status" class="visually-hidden" role="status" aria-live="polite"></div>
+  </main>
+
+  <template id="task-template">
+    <li class="task">
+      <div class="task__view">
+        <input class="task__check" type="checkbox">
+        <label class="task__title"></label>
+        <time class="task__time"></time>
+        <div class="task__actions">
+          <button type="button" class="button button--small button--ghost" data-action="edit">Изменить</button>
+          <button type="button" class="button button--small button--danger" data-action="delete">Удалить</button>
+        </div>
+      </div>
+      <form class="task__edit" novalidate hidden>
+        <label class="visually-hidden">Новое название дела</label>
+        <input class="input" type="text" autocomplete="off" required>
+        <button type="submit" class="button button--small">Сохранить</button>
+        <button type="button" class="button button--small button--ghost" data-action="cancel">Отмена</button>
+        <p class="field__error task__edit-error" hidden></p>
+      </form>
+    </li>
+  </template>
+</body>
+</html>
