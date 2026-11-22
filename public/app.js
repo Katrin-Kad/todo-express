@@ -21,9 +21,11 @@
     tasksSection: $('tasks-section'),
     tasksTitle: $('tasks-title'),
     runForm: $('run-form'),
+    showButton: $('run-form').querySelector('button[type="submit"]'),
     runInput: $('run-input'),
     runError: $('run-error'),
     addForm: $('add-form'),
+    addButton: $('add-form').querySelector('button[type="submit"]'),
     addInput: $('add-input'),
     addError: $('add-error'),
     summary: $('summary'),
@@ -194,10 +196,40 @@
   }
 
   // ---------- сценарии ----------
+  function readRunId() {
+    const runId = els.runInput.value.trim();
+    if (!RUN_ID_RE.test(runId)) {
+      setFieldError(els.runInput, els.runError, 'Только латиница, цифры, «_» и «-», от 1 до 64 символов.');
+      els.runInput.focus();
+      return null;
+    }
+    setFieldError(els.runInput, els.runError, '');
+    return runId;
+  }
+
+  function selectRun(runId) {
+    if (state.runId !== runId) {
+      state.runId = runId;
+      state.tasks = [];
+      renderList();
+    }
+    els.runInput.value = runId;
+    storage.set(RUN_KEY, runId);
+  }
+
+  function setRunBusy(busy) {
+    els.runInput.readOnly = busy;
+    els.showButton.disabled = busy;
+    els.addButton.disabled = busy;
+  }
+
   async function loadTasks() {
+    const { runId, token } = state;
     els.list.setAttribute('aria-busy', 'true');
     try {
-      state.tasks = await api('GET', `/api/tasks/?runId=${encodeURIComponent(state.runId)}`);
+      const tasks = await api('GET', `/api/tasks/?runId=${encodeURIComponent(runId)}`);
+      if (state.runId !== runId || state.token !== token) return false;
+      state.tasks = tasks;
       renderList();
       return true;
     } catch (err) {
@@ -249,6 +281,9 @@
   }
 
   async function addTask() {
+    if (els.addButton.disabled) return;
+    const runId = readRunId();
+    if (runId === null) return;
     const result = validateTitle(els.addInput.value);
     if (result.error) {
       setFieldError(els.addInput, els.addError, result.error);
@@ -257,19 +292,24 @@
     }
     setFieldError(els.addInput, els.addError, '');
     hideAlert();
-    const submit = els.addForm.querySelector('button[type="submit"]');
-    submit.disabled = true;
+    const token = state.token;
+    setRunBusy(true);
+    els.addInput.readOnly = true;
     try {
-      const task = await api('POST', '/api/tasks/', { title: result.title, runId: state.runId });
+      const task = await api('POST', '/api/tasks/', { title: result.title, runId });
+      if (state.token !== token) return;
+      selectRun(runId);
       state.tasks.push(task);
       els.list.append(createTaskItem(task));
       renderSummary();
       els.addInput.value = '';
-      announce(`Дело «${task.title}» добавлено.`);
+      await loadTasks();
+      if (state.token === token) announce(`Дело «${task.title}» добавлено в набор «${runId}».`);
     } catch (err) {
       handleApiError(err, 'Не удалось добавить дело');
     } finally {
-      submit.disabled = false;
+      setRunBusy(false);
+      els.addInput.readOnly = false;
       if (state.token) els.addInput.focus();
     }
   }
@@ -385,17 +425,17 @@
 
   els.runForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const runId = els.runInput.value.trim();
-    if (!RUN_ID_RE.test(runId)) {
-      setFieldError(els.runInput, els.runError, 'Только латиница, цифры, «_» и «-», от 1 до 64 символов.');
-      els.runInput.focus();
-      return;
-    }
-    setFieldError(els.runInput, els.runError, '');
+    if (els.showButton.disabled) return;
+    const runId = readRunId();
+    if (runId === null) return;
     hideAlert();
-    state.runId = runId;
-    storage.set(RUN_KEY, runId);
-    if (await loadTasks()) announce(`Показан набор «${runId}»: дел ${state.tasks.length}.`);
+    selectRun(runId);
+    setRunBusy(true);
+    try {
+      if (await loadTasks()) announce(`Показан набор «${runId}»: дел ${state.tasks.length}.`);
+    } finally {
+      setRunBusy(false);
+    }
   });
 
   els.addForm.addEventListener('submit', (event) => {
